@@ -151,10 +151,6 @@ app.post("/login", async (req, res) => {
 });
 
 // ===============================
-
-app.get("*", (req, res) => {
-    res.send("Server alive");
-});
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
@@ -185,4 +181,9 @@ app.get("/get-user/:username", async (req, res) => {
         console.log(error);
         res.json({ success: false });
     }
+});
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log("Server running on port " + PORT);
 });

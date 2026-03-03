@@ -37,6 +37,7 @@ const userSchema = new mongoose.Schema({
     phone: String,
     password: String,
     verified: { type: Boolean, default: true },
+    locked: { type: Boolean, default: false }, // 👈 ADD THIS
     role: { type: String, default: "user" }
 });
 
@@ -158,15 +159,49 @@ app.post("/login", async (req, res) => {
         if (!user || user.password !== password) {
             return res.json({ success: false });
         }
-
-        res.json({ success: true, username: user.username });
+        if (user.locked) {
+    return res.json({ success: false, message: "Account Locked 🔒" });
+}
+         res.json({ success: true, username: user.username });
 
     } catch (error) {
         console.log("Login Error ❌", error);
         res.json({ success: false });
     }
 });
+// ===============================
+// ADMIN LOCK / UNLOCK
+// ===============================
+app.put("/admin/lock/:id", async (req, res) => {
 
+    try {
+        const user = await User.findById(req.params.id);
+
+        if (!user) return res.json({ success: false });
+
+        user.locked = !user.locked;
+        await user.save();
+
+        res.json({ success: true });
+
+    } catch (error) {
+        res.json({ success: false });
+    }
+});
+
+// ===============================
+// ADMIN DELETE USER
+// ===============================
+app.delete("/admin/delete/:id", async (req, res) => {
+
+    try {
+        await User.findByIdAndDelete(req.params.id);
+        res.json({ success: true });
+    } catch (error) {
+        console.log("Delete Error ❌", error);
+        res.json({ success: false });
+    }
+});
 // ===============================
 // GET USER DATA
 // ===============================

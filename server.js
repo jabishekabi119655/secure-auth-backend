@@ -6,15 +6,27 @@ const nodemailer = require("nodemailer");
 const cors = require("cors");
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
+
+// ===============================
+// CHECK ENV VARIABLES
+// ===============================
+if (!process.env.MONGO_URI) {
+    console.log("❌ MONGO_URI missing");
+    process.exit(1);
+}
 
 // ===============================
 // MONGODB CONNECT
 // ===============================
 mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log("MongoDB Connected ✅"))
-.catch(err => console.log("MongoDB Error ❌", err));
+.catch(err => {
+    console.log("MongoDB Error ❌", err);
+    process.exit(1);
+});
 
 // ===============================
 // USER MODEL
@@ -36,6 +48,13 @@ const User = mongoose.model("User", userSchema);
 let otpStore = {};
 
 // ===============================
+// ROOT ROUTE
+// ===============================
+app.get("/", (req, res) => {
+    res.send("Secure Auth Backend Live 🚀");
+});
+
+// ===============================
 // TEST ROUTE
 // ===============================
 app.get("/test", (req, res) => {
@@ -46,7 +65,6 @@ app.get("/test", (req, res) => {
 // SEND OTP
 // ===============================
 app.post("/send-otp", async (req, res) => {
-
     const { email } = req.body;
 
     if (!email) {
@@ -56,10 +74,7 @@ app.post("/send-otp", async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000);
     otpStore[email] = otp;
 
-    console.log("Generated OTP:", otp);
-
     try {
-
         const transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
@@ -78,7 +93,7 @@ app.post("/send-otp", async (req, res) => {
         res.json({ success: true });
 
     } catch (error) {
-        console.log(error);
+        console.log("Mail Error ❌", error);
         res.json({ success: false });
     }
 });
@@ -87,7 +102,6 @@ app.post("/send-otp", async (req, res) => {
 // VERIFY OTP
 // ===============================
 app.post("/verify-otp", (req, res) => {
-
     const { email, otp } = req.body;
 
     if (otpStore[email] && otpStore[email] == otp) {
@@ -102,9 +116,7 @@ app.post("/verify-otp", (req, res) => {
 // REGISTER USER
 // ===============================
 app.post("/register", async (req, res) => {
-
     try {
-
         const { username, email, phone, password } = req.body;
 
         const existingUser = await User.findOne({
@@ -127,7 +139,7 @@ app.post("/register", async (req, res) => {
         res.json({ success: true });
 
     } catch (error) {
-        console.log(error);
+        console.log("Register Error ❌", error);
         res.json({ success: false });
     }
 });
@@ -136,37 +148,35 @@ app.post("/register", async (req, res) => {
 // LOGIN
 // ===============================
 app.post("/login", async (req, res) => {
-
     const { identifier, password } = req.body;
 
-    const user = await User.findOne({
-        $or: [{ email: identifier }, { phone: identifier }]
-    });
+    try {
+        const user = await User.findOne({
+            $or: [{ email: identifier }, { phone: identifier }]
+        });
 
-    if (!user || user.password !== password) {
-        return res.json({ success: false });
+        if (!user || user.password !== password) {
+            return res.json({ success: false });
+        }
+
+        res.json({ success: true, username: user.username });
+
+    } catch (error) {
+        console.log("Login Error ❌", error);
+        res.json({ success: false });
     }
-
-    res.json({ success: true, username: user.username });
 });
 
-// ===============================
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-    console.log("Server running on port " + PORT);
-});
 // ===============================
 // GET USER DATA
 // ===============================
 app.get("/get-user/:username", async (req, res) => {
-
     const username = req.params.username;
 
     try {
-       const user = await User.findOne({
-    username: { $regex: new RegExp("^" + username + "$", "i") }
-});
+        const user = await User.findOne({
+            username: { $regex: new RegExp("^" + username + "$", "i") }
+        });
 
         if (!user) {
             return res.json({ success: false });
@@ -178,10 +188,14 @@ app.get("/get-user/:username", async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error);
+        console.log("Get User Error ❌", error);
         res.json({ success: false });
     }
 });
+
+// ===============================
+// START SERVER (ONLY ONCE)
+// ===============================
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {

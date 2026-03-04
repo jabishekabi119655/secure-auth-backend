@@ -32,13 +32,27 @@ mongoose.connect(process.env.MONGO_URI)
 // USER MODEL
 // ===============================
 const userSchema = new mongoose.Schema({
+
     username: String,
     email: String,
     phone: String,
     password: String,
-    verified: { type: Boolean, default: true },
-    locked: { type: Boolean, default: false },
-    role: { type: String, default: "user" }
+
+    verified: {
+        type: Boolean,
+        default: true
+    },
+
+    locked: {
+        type: Boolean,
+        default: false
+    },
+
+    role: {
+        type: String,
+        default: "user"
+    }
+
 });
 
 const User = mongoose.model("User", userSchema);
@@ -69,26 +83,34 @@ app.post("/send-otp", async (req, res) => {
 
     const { email } = req.body;
 
-    if (!email) return res.json({ success: false });
+    if (!email) {
+        return res.json({ success: false });
+    }
 
     const otp = Math.floor(100000 + Math.random() * 900000);
+
     otpStore[email] = otp;
 
     try {
 
         const transporter = nodemailer.createTransport({
+
             service: "gmail",
+
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
             }
+
         });
 
         await transporter.sendMail({
+
             from: process.env.EMAIL_USER,
             to: email,
             subject: "Your OTP Code",
             text: `Your OTP is: ${otp}`
+
         });
 
         res.json({ success: true });
@@ -96,6 +118,7 @@ app.post("/send-otp", async (req, res) => {
     } catch (error) {
 
         console.log("Mail Error ❌", error);
+
         res.json({ success: false });
 
     }
@@ -112,6 +135,7 @@ app.post("/verify-otp", (req, res) => {
     if (otpStore[email] && otpStore[email] == otp) {
 
         delete otpStore[email];
+
         return res.json({ success: true });
 
     }
@@ -130,18 +154,30 @@ app.post("/register", async (req, res) => {
         const { username, email, phone, password } = req.body;
 
         const existingUser = await User.findOne({
-            $or: [{ email }, { phone }]
+
+            $or: [
+                { email },
+                { phone }
+            ]
+
         });
 
         if (existingUser) {
-            return res.json({ success: false, message: "User already exists" });
+
+            return res.json({
+                success: false,
+                message: "User already exists"
+            });
+
         }
 
         const newUser = new User({
+
             username,
             email,
             phone,
             password
+
         });
 
         await newUser.save();
@@ -151,6 +187,7 @@ app.post("/register", async (req, res) => {
     } catch (error) {
 
         console.log("Register Error ❌", error);
+
         res.json({ success: false });
 
     }
@@ -167,48 +204,39 @@ app.post("/login", async (req, res) => {
     try {
 
         const user = await User.findOne({
-            $or: [{ email: identifier }, { phone: identifier }]
+
+            $or: [
+                { email: identifier },
+                { phone: identifier }
+            ]
+
         });
 
         if (!user || user.password !== password) {
+
             return res.json({ success: false });
+
         }
 
         if (user.locked) {
-            return res.json({ success: false, message: "Account Locked 🔒" });
+
+            return res.json({
+                success: false,
+                message: "Account Locked 🔒"
+            });
+
         }
 
         res.json({
+
             success: true,
             username: user.username
+
         });
 
     } catch (error) {
 
         console.log("Login Error ❌", error);
-        res.json({ success: false });
-
-    }
-
-});
-
-// ===============================
-// ADMIN LOCK / UNLOCK
-// ===============================
-app.put("/admin/lock/:id", async (req, res) => {
-
-    try {
-
-        const user = await User.findById(req.params.id);
-
-        if (!user) return res.json({ success: false });
-
-        user.locked = !user.locked;
-        await user.save();
-
-        res.json({ success: true });
-
-    } catch {
 
         res.json({ success: false });
 
@@ -217,26 +245,7 @@ app.put("/admin/lock/:id", async (req, res) => {
 });
 
 // ===============================
-// ADMIN DELETE USER
-// ===============================
-app.delete("/admin/delete/:id", async (req, res) => {
-
-    try {
-
-        await User.findByIdAndDelete(req.params.id);
-        res.json({ success: true });
-
-    } catch (error) {
-
-        console.log("Delete Error ❌", error);
-        res.json({ success: false });
-
-    }
-
-});
-
-// ===============================
-// GET USER DATA
+// GET USER DATA (PROFILE)
 // ===============================
 app.get("/get-user/:username", async (req, res) => {
 
@@ -255,7 +264,7 @@ app.get("/get-user/:username", async (req, res) => {
             username: user.username,
             email: user.email,
             phone: user.phone,
-            locked: user.locked
+            password: user.password
         });
 
     } catch (error) {
@@ -273,5 +282,43 @@ app.get("/get-user/:username", async (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
+
     console.log("Server running on port " + PORT);
+
+});
+// ===============================
+// CHANGE PASSWORD
+// ===============================
+app.post("/change-password", async (req,res)=>{
+
+try{
+
+const {username, oldPassword, newPassword} = req.body;
+
+const user = await User.findOne({username});
+
+if(!user){
+return res.json({success:false});
+}
+
+if(user.password !== oldPassword){
+return res.json({
+success:false,
+message:"Old password incorrect"
+});
+}
+
+user.password = newPassword;
+
+await user.save();
+
+res.json({success:true});
+
+}catch(err){
+
+console.log(err);
+res.json({success:false});
+
+}
+
 });

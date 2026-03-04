@@ -206,11 +206,11 @@ app.delete("/admin/delete/:id", async (req, res) => {
 // GET USER DATA
 // ===============================
 app.get("/get-user/:username", async (req, res) => {
-    const username = req.params.username;
 
     try {
+
         const user = await User.findOne({
-            username: { $regex: new RegExp("^" + username + "$", "i") }
+            username: { $regex: new RegExp("^" + req.params.username + "$", "i") }
         });
 
         if (!user) {
@@ -218,17 +218,21 @@ app.get("/get-user/:username", async (req, res) => {
         }
 
         res.json({
-    success: true,
-    username: user.username,
-    email: user.email,
-    phone: user.phone,
-    locked: user.locked,
-    password: user.password
-});
+            success: true,
+            username: user.username,
+            email: user.email,
+            phone: user.phone,
+            locked: user.locked
+        });
+
     } catch (error) {
-        console.log("Get User Error ❌", error);
+
+        console.log(error);
+
         res.json({ success: false });
+
     }
+
 });
 // ===============================
 // START SERVER (ONLY ONCE)
@@ -238,3 +242,26 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log("Server running on port " + PORT);
 });
+window.addEventListener("load", async () => {
+
+const username = localStorage.getItem("loggedInUser")
+
+document.getElementById("welcomeUser").innerText =
+"Welcome " + username
+
+const res = await fetch(
+"https://secure-auth-backend-eew6.onrender.com/get-user/" + username
+)
+
+const data = await res.json()
+
+if(!data.success) return
+
+document.getElementById("profileName").innerText = data.username
+document.getElementById("profileEmail").innerText = data.email
+document.getElementById("profilePhone").innerText = data.phone
+
+document.getElementById("avatarInitial").innerText =
+data.username.charAt(0).toUpperCase()
+
+})

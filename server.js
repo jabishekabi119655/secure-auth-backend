@@ -218,16 +218,13 @@ app.get("/get-user/:username", async (req, res) => {
         }
 
         res.json({
-            success: true,
-            id: user._id,
-            username: user.username,
-            email: user.email,
-            phone: user.phone,
-            locked: user.locked,
-            role: user.role,
-            password: user.password
-        });
-
+    success: true,
+    username: user.username,
+    email: user.email,
+    phone: user.phone,
+    locked: user.locked,
+    password: user.password
+});
     } catch (error) {
         console.log("Get User Error ❌", error);
         res.json({ success: false });

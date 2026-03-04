@@ -289,36 +289,36 @@ app.listen(PORT, () => {
 // ===============================
 // CHANGE PASSWORD
 // ===============================
-app.post("/change-password", async (req,res)=>{
+app.post("/change-password", async (req, res) => {
 
-try{
+    try {
 
-const {username, oldPassword, newPassword} = req.body;
+        const { username, oldPassword, newPassword } = req.body;
 
-const user = await User.findOne({username});
+        const user = await User.findOne({ username });
 
-if(!user){
-return res.json({success:false});
-}
+        if (!user) {
+            return res.json({ success: false });
+        }
 
-if(user.password !== oldPassword){
-return res.json({
-success:false,
-message:"Old password incorrect"
-});
-}
+        if (user.password !== oldPassword) {
+            return res.json({
+                success: false,
+                message: "Old password incorrect ❌"
+            });
+        }
 
-user.password = newPassword;
+        user.password = newPassword;
 
-await user.save();
+        await user.save();
 
-res.json({success:true});
+        res.json({ success: true });
 
-}catch(err){
+    } catch (error) {
 
-console.log(err);
-res.json({success:false});
+        console.log(error);
+        res.json({ success: false });
 
-}
+    }
 
 });

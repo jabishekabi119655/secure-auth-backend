@@ -37,7 +37,7 @@ const userSchema = new mongoose.Schema({
     phone: String,
     password: String,
     verified: { type: Boolean, default: true },
-    locked: { type: Boolean, default: false }, // 👈 ADD THIS
+    locked: { type: Boolean, default: false },
     role: { type: String, default: "user" }
 });
 
@@ -66,16 +66,16 @@ app.get("/test", (req, res) => {
 // SEND OTP
 // ===============================
 app.post("/send-otp", async (req, res) => {
+
     const { email } = req.body;
 
-    if (!email) {
-        return res.json({ success: false });
-    }
+    if (!email) return res.json({ success: false });
 
     const otp = Math.floor(100000 + Math.random() * 900000);
     otpStore[email] = otp;
 
     try {
+
         const transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
@@ -94,30 +94,39 @@ app.post("/send-otp", async (req, res) => {
         res.json({ success: true });
 
     } catch (error) {
+
         console.log("Mail Error ❌", error);
         res.json({ success: false });
+
     }
+
 });
 
 // ===============================
 // VERIFY OTP
 // ===============================
 app.post("/verify-otp", (req, res) => {
+
     const { email, otp } = req.body;
 
     if (otpStore[email] && otpStore[email] == otp) {
+
         delete otpStore[email];
         return res.json({ success: true });
+
     }
 
     res.json({ success: false });
+
 });
 
 // ===============================
 // REGISTER USER
 // ===============================
 app.post("/register", async (req, res) => {
+
     try {
+
         const { username, email, phone, password } = req.body;
 
         const existingUser = await User.findOne({
@@ -140,18 +149,23 @@ app.post("/register", async (req, res) => {
         res.json({ success: true });
 
     } catch (error) {
+
         console.log("Register Error ❌", error);
         res.json({ success: false });
+
     }
+
 });
 
 // ===============================
 // LOGIN
 // ===============================
 app.post("/login", async (req, res) => {
+
     const { identifier, password } = req.body;
 
     try {
+
         const user = await User.findOne({
             $or: [{ email: identifier }, { phone: identifier }]
         });
@@ -159,22 +173,32 @@ app.post("/login", async (req, res) => {
         if (!user || user.password !== password) {
             return res.json({ success: false });
         }
+
         if (user.locked) {
-    return res.json({ success: false, message: "Account Locked 🔒" });
-}
-         res.json({ success: true, username: user.username });
+            return res.json({ success: false, message: "Account Locked 🔒" });
+        }
+
+        res.json({
+            success: true,
+            username: user.username
+        });
 
     } catch (error) {
+
         console.log("Login Error ❌", error);
         res.json({ success: false });
+
     }
+
 });
+
 // ===============================
 // ADMIN LOCK / UNLOCK
 // ===============================
 app.put("/admin/lock/:id", async (req, res) => {
 
     try {
+
         const user = await User.findById(req.params.id);
 
         if (!user) return res.json({ success: false });
@@ -184,9 +208,12 @@ app.put("/admin/lock/:id", async (req, res) => {
 
         res.json({ success: true });
 
-    } catch (error) {
+    } catch {
+
         res.json({ success: false });
+
     }
+
 });
 
 // ===============================
@@ -195,13 +222,19 @@ app.put("/admin/lock/:id", async (req, res) => {
 app.delete("/admin/delete/:id", async (req, res) => {
 
     try {
+
         await User.findByIdAndDelete(req.params.id);
         res.json({ success: true });
+
     } catch (error) {
+
         console.log("Delete Error ❌", error);
         res.json({ success: false });
+
     }
+
 });
+
 // ===============================
 // GET USER DATA
 // ===============================
@@ -228,40 +261,17 @@ app.get("/get-user/:username", async (req, res) => {
     } catch (error) {
 
         console.log(error);
-
         res.json({ success: false });
 
     }
 
 });
+
 // ===============================
-// START SERVER (ONLY ONCE)
+// START SERVER
 // ===============================
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
     console.log("Server running on port " + PORT);
 });
-window.addEventListener("load", async () => {
-
-const username = localStorage.getItem("loggedInUser")
-
-document.getElementById("welcomeUser").innerText =
-"Welcome " + username
-
-const res = await fetch(
-"https://secure-auth-backend-eew6.onrender.com/get-user/" + username
-)
-
-const data = await res.json()
-
-if(!data.success) return
-
-document.getElementById("profileName").innerText = data.username
-document.getElementById("profileEmail").innerText = data.email
-document.getElementById("profilePhone").innerText = data.phone
-
-document.getElementById("avatarInitial").innerText =
-data.username.charAt(0).toUpperCase()
-
-})
